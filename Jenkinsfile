@@ -1,45 +1,65 @@
-    pipeline {
-        agent any
-        
-        stages {
-            stage "Pull stage" {
-                steps {
-                    bat 'git clone https://github.com/Ishikapbhatt/MDA4.git'
-                }
-            }
+pipeline {
+    agent any
 
-            stage "Infrastructure" {
-                steps {
-                    bat 'cd Terraform/eks-modules'
+    environment {
+        PATH = "C:\\Program Files\\Git\\bin;C:\\Program Files\\Docker\\Docker\\resources\\bin:${env.PATH}"
+        REGISTRY = 'docker.io/ishika979'
+        aws_access_key = credentials('aws-access-key')
+        aws_secret_key = credentials('aws-secret-key')
+    }
+
+    options {
+        skipDefaultCheckout false
+    }
+
+    stages {
+        stage('Pull stage') {
+            steps {
+                git url: 'https://github.com/nutannavale63/MDA4-New', branch: 'main'
+            }
+        }
+
+        stage('Infrastructure') {
+            steps {
+                dir('Terraform/eks-modules') {
                     bat 'terraform init'
+                    bat 'terraform refresh'
                     bat 'terraform apply -auto-approve'
                 }
+                bat 'aws eks update-kubeconfig --name my-eks-cluster --region us-west-2'
             }
+        }
 
-            stage "Build" {
-                steps {
-                    bat 'cd docker/student-app/database'
-                    bat 'docker build -t studentapp-db .'
-                    bat 'cd ../backend'
-                    bat 'docker build -t studentapp-be .'
-                    bat 'cd ../frontend'
-                    bat 'docker build -t studentapp-fe .'
+        stage('Build') {
+            steps {
+                dir('docker/studentapp/database') {
+                    bat 'docker build --platform linux/amd64 -t ${REGISTRY}/studentapp-db:latest .'
+                }
+                dir('docker/studentapp/backend') {
+                    bat 'docker build --platform linux/amd64 -t ${REGISTRY}/studentapp-be:latest .'
+                }
+                dir('docker/studentapp/frontend') {
+                    bat 'docker build --platform linux/amd64 -t ${REGISTRY}/studentapp-fe:latest .'
                 }
             }
+        }
 
-            stage "push stage" {
-                steps {
-                    bat 'docker push studentapp-db'
-                    bat 'docker push studentapp-be'
-                    bat 'docker push studentapp-fe'
-                }
+        stage('Push stage') {
+            steps {
+                bat 'docker push ${REGISTRY}/studentapp-db:latest'
+                bat 'docker push ${REGISTRY}/studentapp-be:latest'
+                bat 'docker push ${REGISTRY}/studentapp-fe:latest'
             }
-            
-            stage "Deploy" {
-                steps {
-                    bat 'cd Kubernetes/student-app/'
-                    bat 'kubectl apply -f KUbernetes/student-app/'
+        }
+
+        stage('Deploy') {
+            steps {
+                dir('KUbernetes/Studentapp') {
+                    bat 'kubectl apply -f Database/'
+                    bat 'kubectl apply -f Backend/'
+                    bat 'kubectl apply -f Frontend/'
                 }
             }
         }
     }
+}
