@@ -4,41 +4,41 @@
         stages {
             stage "Pull stage" {
                 steps {
-                    sh 'git clone https://github.com/Ishikapbhatt/MDA4.git'
+                    bat 'git clone https://github.com/Ishikapbhatt/MDA4.git'
                 }
             }
 
             stage "Infrastructure" {
                 steps {
-                    sh 'cd Terraform/eks-modules'
-                    sh 'terraform init'
-                    sh 'terraform apply -auto-approve'
+                    bat 'cd Terraform/eks-modules'
+                    bat 'terraform init'
+                    bat 'terraform apply -auto-approve'
                 }
             }
 
             stage "Build" {
                 steps {
-                    sh 'cd docker/student-app/database'
-                    sh 'docker build -t studentapp-db .'
-                    sh 'cd ../backend'
-                    sh 'docker build -t studentapp-be .'
-                    sh 'cd ../frontend'
-                    sh 'docker build -t studentapp-fe .'
+                    bat 'cd docker/student-app/database'
+                    bat 'docker build -t studentapp-db .'
+                    bat 'cd ../backend'
+                    bat 'docker build -t studentapp-be .'
+                    bat 'cd ../frontend'
+                    bat 'docker build -t studentapp-fe .'
                 }
             }
 
             stage "push stage" {
                 steps {
-                    sh 'docker push studentapp-db'
-                    sh 'docker push studentapp-be'
-                    sh 'docker push studentapp-fe'
+                    bat 'docker push studentapp-db'
+                    bat 'docker push studentapp-be'
+                    bat 'docker push studentapp-fe'
                 }
             }
             
             stage "Deploy" {
                 steps {
-                    sh 'cd Kubernetes/student-app/'
-                    sh 'kubectl apply -f KUbernetes/student-app/'
+                    bat 'cd Kubernetes/student-app/'
+                    bat 'kubectl apply -f KUbernetes/student-app/'
                 }
             }
         }
